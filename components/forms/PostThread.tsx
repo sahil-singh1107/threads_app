@@ -25,6 +25,7 @@ import { isBase64Image } from "@/lib/utils";
 import { ThreadValidation } from "@/lib/validations/thread";
 import { updateUser } from "@/lib/actions/user.actions";
 import { createThread } from "@/lib/actions/thread.actions";
+import { useOrganization } from "@clerk/nextjs";
 
 interface Props {
   user: {
@@ -41,6 +42,7 @@ interface Props {
 const PostThread = ({ userId }: { userId: string }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const {organization} = useOrganization()
   const { startUpload } = useUploadThing("media");
 
   const form = useForm({
@@ -52,12 +54,22 @@ const PostThread = ({ userId }: { userId: string }) => {
   });
 
   const onSubmit = async (values: z.infer<typeof ThreadValidation>) => {
-    await createThread({ 
+    if (!organization) {
+
+      await createThread({ 
+          text: values.thread,
+          author: userId,
+          communityId: null,
+          path: pathname
+      });
+    } else {
+      await createThread({ 
         text: values.thread,
         author: userId,
-        communityId: null,
+        communityId: organization.id,
         path: pathname
     });
+    }
 
     router.push("/")
   };
